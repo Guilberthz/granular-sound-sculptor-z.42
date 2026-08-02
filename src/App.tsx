@@ -161,10 +161,17 @@ export default function SoundSculptor() {
     reader.readAsArrayBuffer(file);
   };
 
+const lastPlayheadPushRef = useRef(0);
 const engineRef = useRef<AudioEngine | null>(null);
   if (!engineRef.current) {
     engineRef.current = new AudioEngine({
-      onPlayhead: (pos) => setPlayheadPos(pos),
+      onPlayhead: (pos) => {
+        const now = performance.now();
+        if (now - lastPlayheadPushRef.current >= 33) {
+          lastPlayheadPushRef.current = now;
+          setPlayheadPos(pos);
+        }
+      },
       onStopped: () => setIsPlaying(false),
     });
   }

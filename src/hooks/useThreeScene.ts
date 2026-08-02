@@ -189,6 +189,7 @@ export function useThreeScene(params: UseThreeSceneParams) {
     const roundDotTexture = new THREE.CanvasTexture(dotCanvas);
 
     // ===== Background starfield (space backdrop) =====
+    const starfieldResources: { geo: THREE.BufferGeometry; mat: THREE.PointsMaterial; map: THREE.Texture }[] = [];
     const buildStarTexture = (size: number, opacity: number) => {
       const c = document.createElement("canvas");
       c.width = 16;
@@ -217,10 +218,11 @@ export function useThreeScene(params: UseThreeSceneParams) {
         pos[i * 3 + 2] = r * Math.cos(phi);
       }
       geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      const map = buildStarTexture(size, opacity);
       const mat = new THREE.PointsMaterial({
         color: 0xffffff,
         size,
-        map: buildStarTexture(size, opacity),
+        map,
         transparent: true,
         opacity,
         blending: THREE.AdditiveBlending,
@@ -229,6 +231,7 @@ export function useThreeScene(params: UseThreeSceneParams) {
       });
       const points = new THREE.Points(geo, mat);
       scene.add(points);
+      starfieldResources.push({ geo, mat, map });
       return points;
     };
     makeStarfield(1800, 0.35, 0.85, 22, 70);
@@ -461,8 +464,8 @@ export function useThreeScene(params: UseThreeSceneParams) {
     scene.add(horizon);
 
     // Small iridescent core that pulses inside the black hole
-    const coreGeo = new THREE.SphereGeometry(0.13, 32, 32);
-    const coreMat = new THREE.ShaderMaterial({
+    const iridescentCoreGeo = new THREE.SphereGeometry(0.13, 32, 32);
+    const iridescentCoreMat = new THREE.ShaderMaterial({
       vertexShader: EVENT_HORIZON_VERTEX,
       fragmentShader: IRIDESCENT_CORE_FRAGMENT,
       uniforms: {
@@ -473,7 +476,7 @@ export function useThreeScene(params: UseThreeSceneParams) {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
-    const iridescentCore = new THREE.Mesh(coreGeo, coreMat);
+    const iridescentCore = new THREE.Mesh(iridescentCoreGeo, iridescentCoreMat);
     iridescentCore.visible = false;
     iridescentCore.renderOrder = 6;
     scene.add(iridescentCore);
@@ -662,6 +665,7 @@ particles.visible = !isBlackhole;
       if (!canvasRef.current || !rendererRef.current || !cameraRef.current) return;
       const w = canvasRef.current.clientWidth;
       const h = canvasRef.current.clientHeight;
+      if (w === 0 || h === 0) return;
       cameraRef.current.aspect = w / h;
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(w, h);
@@ -707,6 +711,14 @@ particles.visible = !isBlackhole;
       jetGeo.dispose();
       jetMat.dispose();
       starTexture.dispose();
+      roundDotTexture.dispose();
+      for (const res of starfieldResources) {
+        res.geo.dispose();
+        res.mat.dispose();
+        res.map.dispose();
+      }
+      iridescentCoreGeo.dispose();
+      iridescentCoreMat.dispose();
       renderTarget.dispose();
       lensingMat.dispose();
       lensQuad.geometry.dispose();
