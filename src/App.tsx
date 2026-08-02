@@ -17,6 +17,22 @@ import { Recorder } from "./audio/Recorder";
 import { exportBufferToWav } from "./audio/Exporter";
 import { formatTime } from "./audio/utils";
 
+// Module-level option lists: hoisted so they aren't re-created on every render.
+const HARMONIC_MODES: { id: HarmonicMode; label: string }[] = [
+  { id: "none", label: "OFF" },
+  { id: "octaves", label: "OCTAVES" },
+  { id: "fifths", label: "FIFTHS & 4THS" },
+  { id: "minor_pentatonic", label: "PENTATONIC" },
+  { id: "major", label: "MAJOR" },
+  { id: "whole_tone", label: "WHOLE TONE" },
+];
+const FILTER_TYPES: { id: BiquadFilterType; label: string }[] = [
+  { id: "lowpass", label: "LPF" },
+  { id: "highpass", label: "HPF" },
+  { id: "bandpass", label: "BPF" },
+];
+const PARTICLE_MODES: ParticleMode[] = ["dots", "rings", "blur", "blackhole"];
+
 export default function SoundSculptor() {
   const {
     grainDensity, setGrainDensity, grainSize, setGrainSize, pitchShift, setPitchShift,
@@ -242,7 +258,7 @@ const engineRef = useRef<AudioEngine | null>(null);
     recorder.toggle();
   };
 
-  const handleExportWav = async () => {
+  const handleExportWav = useCallback(async () => {
     if (!engine.currentBuffer) return;
     setIsExporting(true);
     try {
@@ -274,7 +290,7 @@ const engineRef = useRef<AudioEngine | null>(null);
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [engine, volume, isBypassed, distortion, enableDistortion, filterType, filterCutoff, filterResonance, enableFilter, eqLowGain, eqMidGain, eqHighGain, enableEq, delayMix, delayTime, feedback, enableDelay, reverbMix, enableReverb, enableCompressor, compThreshold, compRatio, compAttack, compRelease]);
 
   const pickAudioFileElectron = useCallback(async () => {
     if (!window.electronAPI) return;
@@ -853,17 +869,10 @@ const engineRef = useRef<AudioEngine | null>(null);
                       <span className="text-white font-bold uppercase">{harmonicMode.replace("_", " ")}</span>
                     </div>
                     <div className="flex flex-wrap gap-1 pt-0.5">
-                      {[
-                        { id: "none", label: "OFF" },
-                        { id: "octaves", label: "OCTAVES" },
-                        { id: "fifths", label: "FIFTHS & 4THS" },
-                        { id: "minor_pentatonic", label: "PENTATONIC" },
-                        { id: "major", label: "MAJOR" },
-                        { id: "whole_tone", label: "WHOLE TONE" },
-                      ].map((mode) => (
+                      {HARMONIC_MODES.map((mode) => (
                         <button
                           key={mode.id}
-                          onClick={() => setHarmonicMode(mode.id as HarmonicMode)}
+                          onClick={() => setHarmonicMode(mode.id)}
                           title={`Harmonic mode: ${mode.label}`}
                           className={`futuristic-button compact-button py-0.5 px-1.5 text-[9px] whitespace-nowrap rounded border transition-all ${
                             harmonicMode === mode.id
@@ -882,11 +891,7 @@ const engineRef = useRef<AudioEngine | null>(null);
                   miniKnob={<Knob value={filterCutoff} min={50} max={20000} onChange={setFilterCutoff} label="" displayValue={filterCutoff >= 1000 ? `${(filterCutoff / 1000).toFixed(1)}k` : `${Math.round(filterCutoff)}`} size={32} />}
                 >
                   <div className="flex gap-1 mb-2">
-                    {([
-                      { id: "lowpass" as BiquadFilterType, label: "LPF" },
-                      { id: "highpass" as BiquadFilterType, label: "HPF" },
-                      { id: "bandpass" as BiquadFilterType, label: "BPF" },
-                    ]).map((f) => (
+                    {FILTER_TYPES.map((f) => (
                       <button
                         key={f.id}
                         onClick={() => setFilterType(f.id)}
@@ -1056,7 +1061,7 @@ const engineRef = useRef<AudioEngine | null>(null);
               {/* Particle Visual Mode Controls */}
               <PanelSection title="PARTICLE MODE" icon={<CircleDot className="w-3 h-3" />}>
                 <div className="flex gap-1">
-                  {(["dots", "rings", "blur", "blackhole"] as ParticleMode[]).map((mode) => (
+                  {PARTICLE_MODES.map((mode) => (
                     <button
                       key={mode}
                       onClick={() => setParticleMode(mode)}
