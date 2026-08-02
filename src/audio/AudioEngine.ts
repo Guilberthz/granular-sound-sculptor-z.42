@@ -195,6 +195,7 @@ export class AudioEngine {
   play(): void {
     const ctx = this.ensure();
     if (!ctx) return;
+    if (!this.buffer) return;
     this.resumeIfNeeded();
     this.snapCursorToRegion();
     this.isPlaying = true;
@@ -452,9 +453,10 @@ replay(): void {
 
     const grainGain = ctx.createGain();
     const attack = this.grainSize * 0.3;
+    const peak = Math.max(0.0001, this.textureMix * 0.5);
     grainGain.gain.setValueAtTime(0, grainTime);
-    grainGain.gain.linearRampToValueAtTime(this.textureMix * 0.5, grainTime + attack);
-    grainGain.gain.exponentialRampToValueAtTime(0.001, grainTime + this.grainSize);
+    grainGain.gain.linearRampToValueAtTime(peak, grainTime + attack);
+    grainGain.gain.exponentialRampToValueAtTime(0.0001, grainTime + this.grainSize);
 
     const panner = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
     if (panner) {
@@ -505,6 +507,8 @@ replay(): void {
         this.cursor = dur;
         this.isPlaying = false;
         this.stopGrainScheduler();
+        this.stopScheduledGrains();
+        this.stopPositionedSources();
         this.callbacks.onStopped?.();
       }
       this.onCursorChanged();

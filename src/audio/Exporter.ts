@@ -44,7 +44,8 @@ export async function exportBufferToWav(
   const duration = sourceBuffer.duration;
 
   const OfflineCtx = window.OfflineAudioContext || (window as any).webkitOfflineAudioContext;
-  const offlineCtx = new OfflineCtx(sourceBuffer.numberOfChannels, sampleRate * duration, sampleRate);
+  const lengthFrames = Math.max(1, Math.round(sampleRate * Math.max(0.001, duration)));
+  const offlineCtx = new OfflineCtx(sourceBuffer.numberOfChannels, lengthFrames, sampleRate);
 
   const source = offlineCtx.createBufferSource();
   source.buffer = sourceBuffer;

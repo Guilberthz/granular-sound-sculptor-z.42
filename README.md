@@ -102,23 +102,23 @@ A global **DRY BYPASS (RAW)** toggle (or press **B**) that bypasses **everything
 
 ## Keyboard Shortcuts
 
-| Key            | Action                          |
-| -------------- | ------------------------------- |
-| `Space`        | Play / Pause                    |
-| `1`–`N`        | Load preset (built-in + custom) |
-| `B`            | DRY bypass — raw sample         |
-| `C`            | Toggle compressor               |
-| `Shift + E`    | Toggle spectral EQ              |
-| `R`            | Record output                   |
-| `E`            | Export WAV                      |
-| `G`            | Toggle glitch void              |
-| `L`            | Toggle sample loop (keeps A–B region) |
-| `←` / `→`      | Move loop start (A)              |
-| `Shift + ←` / `→` | Move loop end (B)            |
-| `Tab`          | Switch Granular / FX tab        |
-| `/`            | Show shortcuts overlay          |
-| `Alt + Scroll` | Fine-tune a knob                |
-| `Double-click` | Reset a knob to its default     |
+| Key               | Action                                |
+| ----------------- | ------------------------------------- |
+| `Space`           | Play / Pause                          |
+| `1`–`N`           | Load preset (built-in + custom)       |
+| `B`               | DRY bypass — raw sample               |
+| `C`               | Toggle compressor                     |
+| `Shift + E`       | Toggle spectral EQ                    |
+| `R`               | Record output                         |
+| `E`               | Export WAV                            |
+| `G`               | Toggle glitch void                    |
+| `L`               | Toggle sample loop (keeps A–B region) |
+| `←` / `→`         | Move loop start (A)                   |
+| `Shift + ←` / `→` | Move loop end (B)                     |
+| `Tab`             | Switch Granular / FX tab              |
+| `/`               | Show shortcuts overlay                |
+| `Alt + Scroll`    | Fine-tune a knob                      |
+| `Double-click`    | Reset a knob to its default           |
 
 ---
 

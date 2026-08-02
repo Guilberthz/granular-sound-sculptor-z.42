@@ -109,6 +109,7 @@ export function usePresets(): UsePresetsResult {
   const customPresetsRef = useRef(customPresets);
   customPresetsRef.current = customPresets;
   const managerRef = useRef<PresetManager | null>(null);
+  const firstSaveRef = useRef(true);
 
   const buildCurrentParams = useCallback((): PresetParams => ({
     grainDensity, grainSize, pitchShift, spray, harmonicMode,
@@ -206,6 +207,12 @@ export function usePresets(): UsePresetsResult {
   }, []);
 
   useEffect(() => {
+    // Skip the first mount run so the load effect's real state (not the
+    // initial empty arrays) is what gets persisted to storage.
+    if (firstSaveRef.current) {
+      firstSaveRef.current = false;
+      return;
+    }
     const m = managerRef.current ?? (managerRef.current = new PresetManager());
     m.samples = customSamples;
     m.presets = customPresets;

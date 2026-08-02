@@ -14,7 +14,6 @@ export interface RecorderCallbacks {
  */
 export class Recorder {
   private mediaRecorder: MediaRecorder | null = null;
-  private recordedChunks: Blob[] = [];
   private recordingDest: MediaStreamAudioDestinationNode | null = null;
   private durationTimer: number | null = null;
   private readonly engine: AudioEngine;
@@ -43,13 +42,14 @@ export class Recorder {
       ? "audio/webm;codecs=opus"
       : "audio/webm";
     const recorder = new MediaRecorder(dest.stream, { mimeType: mime });
-    this.recordedChunks = [];
+    // Local snapshot so a fast restart never mixes chunks across recordings.
+    const chunks: Blob[] = [];
 
     recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) this.recordedChunks.push(e.data);
+      if (e.data.size > 0) chunks.push(e.data);
     };
 
-    recorder.onstop = () => this.handleStop(mime);
+    recorder.onstop = () => this.handleStop(mime, chunks);
 
     recorder.start();
     this.mediaRecorder = recorder;
@@ -68,12 +68,12 @@ export class Recorder {
     this.callbacks.onStateChange(false);
   }
 
-  private handleStop(mime: string): void {
-    const blob = new Blob(this.recordedChunks, { type: mime });
+  private handleStop(mime: string, chunks: Blob[]): void {
+    const blob = new Blob(chunks, { type: mime });
     const name = this.callbacks.getName();
     this.decodeAndDownload(blob, name, mime).catch(() => {
       console.error("WAV conversion failed, falling back to original format:", name);
-      const fallbackBlob = new Blob(this.recordedChunks, { type: "audio/webm" });
+      const fallbackBlob = new Blob(chunks, { type: "audio/webm" });
       downloadBlob(fallbackBlob, `${name}_RECORDING.webm`);
     });
   }
