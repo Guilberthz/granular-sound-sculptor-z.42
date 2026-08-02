@@ -186,11 +186,13 @@ const engineRef = useRef<AudioEngine | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const orbitTargetRef = useRef<HTMLDivElement | null>(null);
+  const timelineBusyRef = useRef(false);
 
   useThreeScene({
     canvasRef: canvasRef as React.RefObject<HTMLCanvasElement | null>,
     viewportRef: viewportRef as React.RefObject<HTMLDivElement | null>,
     orbitTargetRef: orbitTargetRef as React.RefObject<HTMLDivElement | null>,
+    isTimelineBusyRef: timelineBusyRef,
     analyserRef: analyserRef as React.RefObject<AnalyserNode | null>,
     grainDensity,
     isGlitchVoid,
@@ -1125,11 +1127,12 @@ const engineRef = useRef<AudioEngine | null>(null);
                   height={92}
                   loopStart={loopStart}
                   loopEnd={loopEnd}
-                  onSetLoopStart={handleSetLoopStart}
-                  onSetLoopEnd={handleSetLoopEnd}
-                  onClearLoop={clearLoopRegion}
-                />
-              </div>
+onSetLoopStart={handleSetLoopStart}
+                   onSetLoopEnd={handleSetLoopEnd}
+                   onClearLoop={clearLoopRegion}
+                   onInteractingChange={(busy) => { timelineBusyRef.current = busy; }}
+                 />
+               </div>
 
 </div>
 
@@ -1177,13 +1180,14 @@ const engineRef = useRef<AudioEngine | null>(null);
                   height={128}
                   loopStart={loopStart}
                   loopEnd={loopEnd}
-                  onSetLoopStart={handleSetLoopStart}
-                  onSetLoopEnd={handleSetLoopEnd}
-                  onClearLoop={clearLoopRegion}
-                />
-              </div>
-            )}
-          </div>
+onSetLoopStart={handleSetLoopStart}
+                   onSetLoopEnd={handleSetLoopEnd}
+                   onClearLoop={clearLoopRegion}
+                   onInteractingChange={(busy) => { timelineBusyRef.current = busy; }}
+                 />
+               </div>
+             )}
+           </div>
 
           {/* Footer HUD Bar */}
          <div className="px-6 py-2 border-t border-neutral-800 bg-black/60 backdrop-blur-sm text-[10px] text-neutral-500 flex justify-between">

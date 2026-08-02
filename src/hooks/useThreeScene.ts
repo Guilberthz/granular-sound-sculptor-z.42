@@ -32,6 +32,7 @@ interface UseThreeSceneParams {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   viewportRef: React.RefObject<HTMLDivElement | null>;
   orbitTargetRef: React.RefObject<HTMLDivElement | null>;
+  isTimelineBusyRef: React.RefObject<boolean>;
   analyserRef: React.RefObject<AnalyserNode | null>;
   grainDensity: number;
   isGlitchVoid: boolean;
@@ -45,7 +46,7 @@ interface UseThreeSceneParams {
 }
 
 export function useThreeScene(params: UseThreeSceneParams) {
-  const { canvasRef, viewportRef, orbitTargetRef, analyserRef } = params;
+  const { canvasRef, viewportRef, orbitTargetRef, isTimelineBusyRef, analyserRef } = params;
 
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -110,7 +111,7 @@ export function useThreeScene(params: UseThreeSceneParams) {
       powerPreference: "high-performance",
     });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.5;
     rendererRef.current = renderer;
@@ -544,6 +545,13 @@ export function useThreeScene(params: UseThreeSceneParams) {
       if (document.hidden) {
         controls.update();
         renderer.render(scene, camera);
+        return;
+      }
+
+      // Timeline interaction (scrub / loop selection): freeze the scene to keep
+      // the main thread free for UI input; resume full speed on release.
+      if (isTimelineBusyRef.current) {
+        lastRenderTime = time;
         return;
       }
 
