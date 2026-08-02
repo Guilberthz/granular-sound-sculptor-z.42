@@ -112,7 +112,9 @@ A global **DRY BYPASS (RAW)** toggle (or press **B**) that bypasses **everything
 | `R`            | Record output                   |
 | `E`            | Export WAV                      |
 | `G`            | Toggle glitch void              |
-| `L`            | Toggle sample loop              |
+| `L`            | Toggle sample loop (keeps A–B region) |
+| `←` / `→`      | Move loop start (A)              |
+| `Shift + ←` / `→` | Move loop end (B)            |
 | `Tab`          | Switch Granular / FX tab        |
 | `/`            | Show shortcuts overlay          |
 | `Alt + Scroll` | Fine-tune a knob                |

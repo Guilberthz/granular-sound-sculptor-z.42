@@ -227,6 +227,10 @@ input:focus-visible,
   background-color: var(--accent-soft) !important;
 }
 
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #333 #000;
+}
 .scrollbar-thin::-webkit-scrollbar {
   width: 4px;
 }

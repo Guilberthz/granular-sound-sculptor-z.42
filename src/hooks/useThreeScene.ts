@@ -9,6 +9,7 @@ import {
   PHOTON_RING_FRAGMENT,
   EVENT_HORIZON_VERTEX,
   EVENT_HORIZON_FRAGMENT,
+  IRIDESCENT_CORE_FRAGMENT,
   LENSING_VERTEX,
   LENSING_FRAGMENT,
   JET_VERTEX,
@@ -104,12 +105,12 @@ export function useThreeScene(params: UseThreeSceneParams) {
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: false,
+      antialias: true,
       alpha: true,
       powerPreference: "high-performance",
     });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.5;
     rendererRef.current = renderer;
@@ -149,6 +150,7 @@ export function useThreeScene(params: UseThreeSceneParams) {
         uBlurIntensity: { value: liveBlurIntensity.current },
         uGlowIntensity: { value: liveGlowIntensity.current },
         uPitch: { value: pitchNorm(livePitchShift.current) },
+        uParticleTint: { value: new THREE.Vector3(1, 1, 1) },
       },
       transparent: true,
       depthWrite: false,
@@ -172,6 +174,65 @@ export function useThreeScene(params: UseThreeSceneParams) {
     const coreSphere = new THREE.Mesh(coreGeometry, coreMaterial);
     scene.add(coreSphere);
 
+    // Round dot texture so PointsMaterials render as circular glows, not squares
+    const dotCanvas = document.createElement("canvas");
+    dotCanvas.width = 32;
+    dotCanvas.height = 32;
+    const dotCtx = dotCanvas.getContext("2d")!;
+    const dotGrad = dotCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    dotGrad.addColorStop(0, "rgba(255,255,255,1)");
+    dotGrad.addColorStop(0.4, "rgba(255,255,255,0.6)");
+    dotGrad.addColorStop(1, "rgba(255,255,255,0)");
+    dotCtx.fillStyle = dotGrad;
+    dotCtx.fillRect(0, 0, 32, 32);
+    const roundDotTexture = new THREE.CanvasTexture(dotCanvas);
+
+    // ===== Background starfield (space backdrop) =====
+    const buildStarTexture = (size: number, opacity: number) => {
+      const c = document.createElement("canvas");
+      c.width = 16;
+      c.height = 16;
+      const g = c.getContext("2d")!;
+      const grad = g.createRadialGradient(8, 8, 0, 8, 8, 8);
+      grad.addColorStop(0, `rgba(255,255,255,${opacity})`);
+      grad.addColorStop(0.4, `rgba(255,255,255,${opacity * 0.5})`);
+      grad.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(8, 8, 4, 0, Math.PI * 2);
+      g.fill();
+      return new THREE.CanvasTexture(c);
+    };
+
+    const makeStarfield = (count: number, size: number, opacity: number, radiusMin: number, radiusMax: number) => {
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const r = radiusMin + Math.random() * (radiusMax - radiusMin);
+        pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        pos[i * 3 + 2] = r * Math.cos(phi);
+      }
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size,
+        map: buildStarTexture(size, opacity),
+        transparent: true,
+        opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        sizeAttenuation: true,
+      });
+      const points = new THREE.Points(geo, mat);
+      scene.add(points);
+      return points;
+    };
+    makeStarfield(1800, 0.35, 0.85, 22, 70);
+    makeStarfield(280, 0.7, 1.0, 22, 70);
+
     const glowDustCount = 2800;
     const glowDustGeo = new THREE.BufferGeometry();
     const glowDustPos = new Float32Array(glowDustCount * 3);
@@ -190,6 +251,7 @@ export function useThreeScene(params: UseThreeSceneParams) {
     const glowDustMat = new THREE.PointsMaterial({
       color: 0xff0040,
       size: 0.02,
+      map: roundDotTexture,
       transparent: true,
       opacity: 0.8,
       blending: THREE.AdditiveBlending,
@@ -247,6 +309,7 @@ export function useThreeScene(params: UseThreeSceneParams) {
     const diskMat = new THREE.PointsMaterial({
       color: 0xffffff,
       size: 0.02,
+      map: roundDotTexture,
       transparent: true,
       opacity: 0.8,
       blending: THREE.AdditiveBlending,
@@ -276,7 +339,8 @@ export function useThreeScene(params: UseThreeSceneParams) {
     smokeGeo.setAttribute("position", new THREE.BufferAttribute(smokePos, 3));
     const smokeMat = new THREE.PointsMaterial({
       color: 0xaaaaaa,
-      size: 0.2,
+      size: 0.08,
+      map: roundDotTexture,
       transparent: true,
       opacity: 0.3,
       blending: THREE.AdditiveBlending,
@@ -299,12 +363,17 @@ export function useThreeScene(params: UseThreeSceneParams) {
     starCtx.fillStyle = "#000";
     starCtx.fillRect(0, 0, 64, 64);
     for (let i = 0; i < 200; i++) {
+      const x = Math.random() * 64;
+      const y = Math.random() * 64;
+      const r = 0.6 + Math.random() * 1.2;
+      starCtx.beginPath();
+      starCtx.arc(x, y, r, 0, Math.PI * 2);
       starCtx.fillStyle = `rgba(255,255,255,${Math.random()})`;
-      starCtx.fillRect(Math.random() * 64, Math.random() * 64, 1, 1);
+      starCtx.fill();
     }
     const starTexture = new THREE.CanvasTexture(starCanvas);
 
-    const accretionCount = 3000;
+    const accretionCount = 8000;
     const accretionGeo = new THREE.BufferGeometry();
     const accretionPos = new Float32Array(accretionCount * 3);
     const accretionRadius = new Float32Array(accretionCount);
@@ -344,7 +413,7 @@ export function useThreeScene(params: UseThreeSceneParams) {
     const accretion = new THREE.Points(accretionGeo, accretionMat);
     blackHoleGroup.add(accretion);
 
-    const photonCount = 500;
+    const photonCount = 18000;
     const photonGeo = new THREE.BufferGeometry();
     const photonPos = new Float32Array(photonCount * 3);
     const photonAngle = new Float32Array(photonCount);
@@ -381,11 +450,34 @@ export function useThreeScene(params: UseThreeSceneParams) {
         uAudioFreq: { value: 0 },
         uStarField: { value: starTexture },
       },
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
     });
     const horizon = new THREE.Mesh(horizonGeo, horizonMat);
-    blackHoleGroup.add(horizon);
+    horizon.visible = false;
+    horizon.renderOrder = 5;
+    scene.add(horizon);
 
-    const jetCount = 400;
+    // Small iridescent core that pulses inside the black hole
+    const coreGeo = new THREE.SphereGeometry(0.13, 32, 32);
+    const coreMat = new THREE.ShaderMaterial({
+      vertexShader: EVENT_HORIZON_VERTEX,
+      fragmentShader: IRIDESCENT_CORE_FRAGMENT,
+      uniforms: {
+        uTime: { value: 0 },
+        uAudioFreq: { value: 0 },
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const iridescentCore = new THREE.Mesh(coreGeo, coreMat);
+    iridescentCore.visible = false;
+    iridescentCore.renderOrder = 6;
+    scene.add(iridescentCore);
+
+    const jetCount = 900;
     const jetGeo = new THREE.BufferGeometry();
     const jetPos = new Float32Array(jetCount * 3);
     const jetHeight = new Float32Array(jetCount);
@@ -486,14 +578,30 @@ export function useThreeScene(params: UseThreeSceneParams) {
 
       controls.autoRotate = liveAutoRotate.current;
 
-      // BLACK HOLE MODE: hide the standard cloud, run the BH system + lensing post-process
+      // Particle modes: BLACKHOLE shows the accretion rings around the sphere.
       const isBlackhole = liveParticleMode.current === "blackhole";
-      particles.visible = !isBlackhole;
+      material.uniforms.uParticleMode.value = isBlackhole ? 1.0 : particleModeValue(liveParticleMode.current);
+      material.uniforms.uParticleTint.value.set(isBlackhole ? 1.0 : 1.0, isBlackhole ? 0.82 : 1.0, isBlackhole ? 0.25 : 1.0);
+particles.visible = !isBlackhole;
       glowDust.visible = !isBlackhole;
       disk.visible = !isBlackhole;
       smoke.visible = !isBlackhole;
-      coreSphere.visible = !isBlackhole;
+      coreSphere.visible = true;
+      horizon.visible = false;
+      iridescentCore.visible = false;
       blackHoleGroup.visible = isBlackhole;
+
+      if (isBlackhole) {
+        accretionMat.uniforms.uTime.value = time;
+        accretionMat.uniforms.uAudioFreq.value = avgFreq;
+        accretionMat.uniforms.uSpin.value = 1.0 + avgFreq * 0.5;
+        accretionMat.uniforms.uAccretionIntensity.value = Math.min(1, liveAccretionIntensity.current + avgFreq * 0.3);
+        accretionMat.uniforms.uTemperature.value = 3.5 + avgFreq * 2.0;
+        photonMat.uniforms.uTime.value = time;
+        photonMat.uniforms.uAudioFreq.value = avgFreq;
+        jetMat.uniforms.uTime.value = time;
+        jetMat.uniforms.uAudioFreq.value = avgFreq;
+      }
 
       // REDUCED reactive intensity when playing - lower multipliers to prevent lag
       const isActive = liveIsPlaying.current && avgFreq > 0.01;
@@ -502,57 +610,40 @@ export function useThreeScene(params: UseThreeSceneParams) {
       const totalGlow = Math.min(1, baseGlow + audioBoost);
       glowMat.opacity = totalGlow;
 
+      const audioIntensity = isActive ? avgFreq * 0.4 : 0;
+
+      // GPU rotation instead of per-particle CPU updates: rotate the shells by absolute time.
+      glowDust.rotation.y = time * 0.0004;
+      glowDustMat.size = 0.008 + audioIntensity * 0.015;
+      glowDustMat.opacity = 0.2 + audioIntensity * 0.5;
+      const corePulse = 1 + avgFreq * 0.08 + Math.sin(time * 0.002) * 0.025;
+      coreSphere.scale.setScalar(corePulse);
+
+      disk.rotation.y = time * 0.0003;
+      diskMat.size = 0.008 + avgFreq * 0.008;
+      diskMat.opacity = 0.3 + avgFreq * 0.3;
+
+      smoke.rotation.y = time * 0.0001;
+      smokeMat.size = 0.08 + avgFreq * 0.05;
+      smokeMat.opacity = 0.08 + avgFreq * 0.08;
+
+      controls.update();
+
       if (isBlackhole) {
-        const acc = Math.min(1, liveAccretionIntensity.current + avgFreq * 0.3);
-        accretionMat.uniforms.uTime.value = time;
-        accretionMat.uniforms.uAudioFreq.value = avgFreq;
-        accretionMat.uniforms.uSpin.value = 1.0 + avgFreq * 0.5;
-        accretionMat.uniforms.uAccretionIntensity.value = acc;
-        accretionMat.uniforms.uTemperature.value = 3.5 + avgFreq * 2.0;
-        photonMat.uniforms.uTime.value = time;
-        photonMat.uniforms.uAudioFreq.value = avgFreq;
-        horizonMat.uniforms.uTime.value = time;
-        horizonMat.uniforms.uAudioFreq.value = avgFreq;
-        jetMat.uniforms.uTime.value = time;
-        jetMat.uniforms.uAudioFreq.value = avgFreq;
-
-        // Project the black hole center into screen space for the lensing pass
+        // Gravitational lensing post-process: render scene off-screen, then warp it
         bhCenterNDC.set(0, 0, 0).project(camera);
-        const screenX = bhCenterNDC.x * 0.5 + 0.5;
-        const screenY = bhCenterNDC.y * 0.5 + 0.5;
-        lensingMat.uniforms.uBHScreenPos.value.set(screenX, screenY);
-
-        // Projected event-horizon radius (NDC -> UV) with audio-reactive swelling
+        lensingMat.uniforms.uBHScreenPos.value.set(bhCenterNDC.x * 0.5 + 0.5, bhCenterNDC.y * 0.5 + 0.5);
         bhEdgeNDC.set(0.42, 0, 0).project(camera);
         const ndcRadius = Math.abs(bhCenterNDC.x - bhEdgeNDC.x);
-        lensingMat.uniforms.uBHRadius.value = Math.max(0.001, ndcRadius / 2) * (1.0 + avgFreq * 0.4);
-        lensingMat.uniforms.uBHMass.value = 1.0 + avgFreq * 0.5;
+        lensingMat.uniforms.uBHRadius.value = Math.max(0.001, ndcRadius / 2) * (1.0 + avgFreq * 0.3);
+        lensingMat.uniforms.uBHMass.value = 1.0 + avgFreq * 0.4;
         lensingMat.uniforms.uTime.value = time * 0.001;
 
-        controls.update();
         renderer.setRenderTarget(renderTarget);
         renderer.render(scene, camera);
         renderer.setRenderTarget(null);
         renderer.render(lensScene, lensCamera);
       } else {
-        const audioIntensity = isActive ? avgFreq * 0.4 : 0; // Reduced intensity
-
-        // GPU rotation instead of per-particle CPU updates: rotate the shells by absolute time.
-        glowDust.rotation.y = time * 0.0004;
-        glowDustMat.size = 0.008 + audioIntensity * 0.015; // Reduced from 0.02
-        glowDustMat.opacity = 0.2 + audioIntensity * 0.5; // Reduced from 0.75
-        const corePulse = 1 + avgFreq * 0.08 + Math.sin(time * 0.002) * 0.025; // Reduced from 0.18
-        coreSphere.scale.setScalar(corePulse);
-
-        disk.rotation.y = time * 0.0003;
-        diskMat.size = 0.008 + avgFreq * 0.008; // Reduced from 0.015
-        diskMat.opacity = 0.3 + avgFreq * 0.3; // Reduced from 0.6
-
-        smoke.rotation.y = time * 0.0001;
-        smokeMat.size = 0.08 + avgFreq * 0.05; // Reduced from 0.1
-        smokeMat.opacity = 0.08 + avgFreq * 0.08; // Reduced from 0.15
-
-        controls.update();
         renderer.render(scene, camera);
       }
     };

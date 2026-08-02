@@ -86,6 +86,7 @@ export const FRAGMENT_SHADER = `
   uniform float uBlurIntensity;
   uniform float uGlowIntensity;
   uniform float uPitch;
+  uniform vec3 uParticleTint;
 
   void main() {
     float dist = length(gl_PointCoord - vec2(0.5));
@@ -117,7 +118,7 @@ export const FRAGMENT_SHADER = `
     color += vec3(uAudioFreq * 0.5);
 
     if (uParticleMode > 0.5 && uParticleMode < 1.5) {
-      color = vec3(1.0);
+      color = vec3(1.0) * uParticleTint;
     } else {
       vec3 pitchTint = mix(vec3(1.0, 0.85, 0.5), vec3(0.6, 0.7, 1.0), uPitch);
       color *= mix(vec3(1.0), pitchTint, 0.4);

@@ -92,10 +92,25 @@ export default function SoundSculptor() {
   }, []);
 
   const toggleLoop = useCallback(() => {
-    if (isLoopingRef.current) clearLoopRegion();
     setIsLooping((p) => !p);
     engineRef.current?.toggleLoop();
-  }, [clearLoopRegion]);
+  }, []);
+
+  const nudgeLoopStart = useCallback((deltaSec: number) => {
+    const dur = audioBufferRef.current?.duration;
+    if (!dur || loopStart === null || loopEnd === null) return;
+    const step = deltaSec / dur;
+    const a = Math.max(0, Math.min(loopEnd - 0.005, loopStart + step));
+    applyLoopRegion(a, loopEnd);
+  }, [loopStart, loopEnd, applyLoopRegion]);
+
+  const nudgeLoopEnd = useCallback((deltaSec: number) => {
+    const dur = audioBufferRef.current?.duration;
+    if (!dur || loopStart === null || loopEnd === null) return;
+    const step = deltaSec / dur;
+    const b = Math.max(loopStart + 0.005, Math.min(1, loopEnd + step));
+    applyLoopRegion(loopStart, b);
+  }, [loopStart, loopEnd, applyLoopRegion]);
 
   const resetAll = useCallback(() => {
     const params = customPresets[selectedSample.id] || DEFAULT_PRESET_PARAMS[selectedSample.id];
@@ -334,6 +349,8 @@ const engineRef = useRef<AudioEngine | null>(null);
     onToggleEq: () => setEnableEq((p) => !p),
     onExport: () => handleExportWav(),
     onToggleShortcuts: () => setShowShortcuts((p) => !p),
+    onNudgeLoopStart: (deltaSec) => nudgeLoopStart(deltaSec),
+    onNudgeLoopEnd: (deltaSec) => nudgeLoopEnd(deltaSec),
   });
 
   useEffect(() => {
@@ -460,7 +477,7 @@ const engineRef = useRef<AudioEngine | null>(null);
 {/* Source Selection Grid */}
              <div className="space-y-2">
                <span className="text-[10px] tracking-widest text-neutral-500 uppercase font-sans">Samples</span>
-               <div className="space-y-1">
+               <div className="flex flex-wrap gap-1.5">
                 {allPresets.map((sample) => (
                   <PresetDiamond
                     key={sample.id}
@@ -479,22 +496,44 @@ const engineRef = useRef<AudioEngine | null>(null);
 
             </div>
 
-{/* Signal Readout */}
-             <div className="border-t border-neutral-800 pt-3 space-y-1.5 text-[11px]">
-               <span className="text-[10px] tracking-widest text-neutral-500 uppercase font-sans">Signal Readout</span>
-               <div className="flex justify-between"><span className="text-neutral-500">Grains</span><span className="text-[#FF0040] font-mono font-bold">{Math.round(grainDensity * (isPlaying ? 1 : 0))}/s</span></div>
-               <div className="flex justify-between"><span className="text-neutral-500">Pitch</span><span className="text-white font-mono">{pitchShift.toFixed(2)}x</span></div>
-               <div className="flex justify-between"><span className="text-neutral-500">Effects</span><span className="text-white font-mono">{[enableDistortion && 'D', enableReverb && 'R', enableDelay && 'E', enableFilter && 'F', enableCompressor && 'C', enableEq && 'EQ'].filter(Boolean).join(' ') || 'â€”'}</span></div>
-               <div className="flex justify-between"><span className="text-neutral-500">Signal</span><span className={isBypassed ? "text-neutral-400 font-mono" : "text-[#FF0040] font-mono font-bold"}>{isBypassed ? "RAW DRY" : "SCULPTED"}</span></div>
-               <div className="flex justify-between"><span className="text-neutral-500">Harmonic</span><span className="text-white font-mono">{harmonicMode === 'none' ? 'OFF' : harmonicMode.replace('_', ' ').toUpperCase()}</span></div>
-               <div className="flex justify-between"><span className="text-neutral-500">Glitch</span><span className="text-[#FF0040] font-mono font-bold">{isGlitchVoid ? 'ON' : 'OFF'}</span></div>
-               <div className="flex justify-between"><span className="text-neutral-500">Playhead</span><span className="text-white font-mono">{formatTime((audioBufferRef.current?.duration || 0) * playheadPos)} / {formatTime(audioBufferRef.current?.duration || 0)}</span></div>
-               {!audioBufferRef.current && (
-                 <div className="text-neutral-600 text-center py-1 text-[10px]">LOAD A SAMPLE TO BEGIN</div>
-               )}
-             </div>
+              <div className="border-t border-neutral-800 pt-3 text-[11px]">
+                <span className="text-[10px] tracking-widest text-neutral-500 uppercase font-sans">Signal Readout</span>
+                <div className="grid grid-cols-2 gap-1 mt-2">
+                  <div className="rounded border border-neutral-800/50 bg-black/40 px-1.5 py-1 flex flex-col gap-0.5">
+                    <span className="text-[9px] tracking-wider text-neutral-500 uppercase">Grains</span>
+                    <span className="text-[#FF0040] font-mono font-bold">{Math.round(grainDensity * (isPlaying ? 1 : 0))}/s</span>
+                  </div>
+                  <div className="rounded border border-neutral-800/50 bg-black/40 px-1.5 py-1 flex flex-col gap-0.5">
+                    <span className="text-[9px] tracking-wider text-neutral-500 uppercase">Pitch</span>
+                    <span className="text-white font-mono">{pitchShift.toFixed(2)}x</span>
+                  </div>
+                  <div className="rounded border border-neutral-800/50 bg-black/40 px-1.5 py-1 flex flex-col gap-0.5">
+                    <span className="text-[9px] tracking-wider text-neutral-500 uppercase">Effects</span>
+                    <span className="text-white font-mono">{[enableDistortion && 'D', enableReverb && 'R', enableDelay && 'E', enableFilter && 'F', enableCompressor && 'C', enableEq && 'EQ'].filter(Boolean).join(' ') || '—'}</span>
+                  </div>
+                  <div className="rounded border border-neutral-800/50 bg-black/40 px-1.5 py-1 flex flex-col gap-0.5">
+                    <span className="text-[9px] tracking-wider text-neutral-500 uppercase">Harmonic</span>
+                    <span className="text-white font-mono">{harmonicMode === 'none' ? 'OFF' : harmonicMode.replace('_', ' ').toUpperCase()}</span>
+                  </div>
+                  <div className="rounded border border-neutral-800/50 bg-black/40 px-1.5 py-1 flex flex-col gap-0.5">
+                    <span className="text-[9px] tracking-wider text-neutral-500 uppercase">Signal</span>
+                    <span className={isBypassed ? "text-neutral-400 font-mono" : "text-[#FF0040] font-mono font-bold"}>{isBypassed ? "RAW DRY" : "SCULPTED"}</span>
+                  </div>
+                  <div className="rounded border border-neutral-800/50 bg-black/40 px-1.5 py-1 flex flex-col gap-0.5">
+                    <span className="text-[9px] tracking-wider text-neutral-500 uppercase">Glitch</span>
+                    <span className="text-[#FF0040] font-mono font-bold">{isGlitchVoid ? 'ON' : 'OFF'}</span>
+                  </div>
+                  <div className="rounded border border-neutral-800/50 bg-black/40 px-2 py-1.5 flex flex-col gap-0.5 col-span-2">
+                    <span className="text-[9px] tracking-wider text-neutral-500 uppercase">Playhead</span>
+                    <span className="text-white font-mono text-[10px]">{formatTime((audioBufferRef.current?.duration || 0) * playheadPos)} / {formatTime(audioBufferRef.current?.duration || 0)}</span>
+                  </div>
+                </div>
+                {!audioBufferRef.current && (
+                  <div className="text-neutral-600 text-center pt-2 text-[10px]">LOAD A SAMPLE TO BEGIN</div>
+                )}
+              </div>
 
-             {/* Particle Visuals */}
+{/* Particle Visuals */}
              <div className="border-t border-neutral-800 pt-3 space-y-2">
                <div className="flex items-center justify-between">
                  <span className="text-[10px] tracking-widest text-neutral-500 uppercase font-sans">Particle Visuals</span>
@@ -751,33 +790,33 @@ const engineRef = useRef<AudioEngine | null>(null);
               <button
                 onClick={handleReplay}
                 title="Replay from start"
-                className="futuristic-button p-1.5 rounded-full border border-neutral-700 bg-black/80 text-neutral-300 hover:text-white hover:border-white transition-all"
+                className="futuristic-button w-10 h-10 rounded-full border border-neutral-700 bg-black/80 text-neutral-300 hover:text-white hover:border-white transition-all flex items-center justify-center shrink-0"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-4 h-4" />
               </button>
 
-<button
+              <button
                  onClick={() => setIsPlaying(!isPlaying)}
                  title="Play / Pause (Space)"
-                 className={`futuristic-button w-11 h-11 rounded-full border-2 transition-all flex items-center justify-center shadow-2xl ${
+                 className={`futuristic-button w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center shadow-2xl shrink-0 ${
                    isPlaying
                      ? "bg-[#FF0040] text-white border-[#FF0040] hover:scale-105 animate-accent-pulse"
                      : "bg-black/80 text-white border-neutral-400 hover:border-[#FF0040]/50 hover:bg-black"
                  }`}
                >
-                {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
               </button>
 
               <button
                 onClick={toggleLoop}
                 title="Toggle Sample Loop"
-                className={`futuristic-button p-1.5 rounded-full border transition-all ${
+                className={`futuristic-button w-10 h-10 rounded-full border transition-all flex items-center justify-center shrink-0 ${
                   isLooping
                     ? "bg-white text-black border-white"
                     : "bg-black/80 border-neutral-700 text-neutral-500 hover:text-white"
                 }`}
               >
-                <Repeat className="w-3.5 h-3.5" />
+                <Repeat className="w-4 h-4" />
               </button>
             </div>
 
@@ -828,7 +867,7 @@ const engineRef = useRef<AudioEngine | null>(null);
                   defaultOpen={enableGranular}
                   miniKnob={<Knob value={grainDensity} min={2} max={50} onChange={setGrainDensity} label="" displayValue={`${grainDensity}`} size={32} />}
                 >
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-4 gap-2">
                     <Knob
                       value={grainDensity}
                       min={2}
@@ -836,6 +875,7 @@ const engineRef = useRef<AudioEngine | null>(null);
                       onChange={setGrainDensity}
                       label="Density"
                       displayValue={`${grainDensity}/s`}
+                      size={56}
                     />
                     <Knob
                       value={grainSize}
@@ -844,6 +884,7 @@ const engineRef = useRef<AudioEngine | null>(null);
                       onChange={setGrainSize}
                       label="Size"
                       displayValue={`${Math.round(grainSize * 1000)}ms`}
+                      size={56}
                     />
                     <Knob
                       value={pitchShift}
@@ -852,6 +893,7 @@ const engineRef = useRef<AudioEngine | null>(null);
                       onChange={setPitchShift}
                       label="Pitch"
                       displayValue={`${pitchShift.toFixed(2)}x`}
+                      size={56}
                     />
                     <Knob
                       value={spray}
@@ -860,6 +902,7 @@ const engineRef = useRef<AudioEngine | null>(null);
                       onChange={setSpray}
                       label="Spray"
                       displayValue={`${Math.round(spray * 1000)}ms`}
+                      size={56}
                     />
                   </div>
 
@@ -933,47 +976,23 @@ const engineRef = useRef<AudioEngine | null>(null);
                 <Module label="DISTORTION" icon={<Zap className="w-3 h-3" />} description="Adds harmonic saturation and edge to the source." enabled={enableDistortion} onToggle={() => setEnableDistortion(!enableDistortion)}
                   miniKnob={<Knob value={distortion} min={0} max={100} onChange={setDistortion} label="" displayValue={`${Math.round(distortion)}`} size={32} />}
                 >
-                  <Knob
-                    value={distortion}
-                    min={0}
-                    max={100}
-                    onChange={setDistortion}
-                    label="Drive"
-                    displayValue={`${Math.round(distortion)}%`}
-                  />
-                  {distortion >= 75 && <p className="text-center text-[9px] text-[#FF0040]">HIGH DRIVE â€” output may become aggressive</p>}
+                  {distortion >= 75 && <p className="text-center text-[9px] text-[#FF0040]">HIGH DRIVE — output may become aggressive</p>}
                 </Module>
 
                 <Module label="DELAY" icon={<Repeat className="w-3 h-3" />} description="Repeats the signal; use Feedback below to control regeneration." enabled={enableDelay} onToggle={() => setEnableDelay(!enableDelay)}
                   miniKnob={<Knob value={delayMix} min={0} max={0.8} onChange={setDelayMix} label="" displayValue={`${Math.round(delayMix / 0.8 * 100)}`} size={32} />}
                 >
-                  <Knob
-                    value={delayMix}
-                    min={0}
-                    max={0.8}
-                    onChange={setDelayMix}
-                    label="Wet / Dry"
-                    displayValue={`${Math.round(delayMix / 0.8 * 100)}%`}
-                  />
                 </Module>
 
                 <Module label="REVERB" description="Blends the signal into a spacious ambient tail." enabled={enableReverb} onToggle={() => setEnableReverb(!enableReverb)}
                   miniKnob={<Knob value={reverbMix} min={0} max={1} onChange={setReverbMix} label="" displayValue={`${Math.round(reverbMix * 100)}`} size={32} />}
                 >
-                  <Knob
-                    value={reverbMix}
-                    min={0}
-                    max={1}
-                    onChange={setReverbMix}
-                    label="Wet / Dry"
-                    displayValue={`${Math.round(reverbMix * 100)}%`}
-                  />
                 </Module>
 
                 <Module label="COMPRESSOR" icon={<Sliders className="w-3 h-3" />} enabled={enableCompressor} onToggle={() => setEnableCompressor(!enableCompressor)}
                   miniKnob={<Knob value={compThreshold} min={-60} max={0} onChange={setCompThreshold} label="" displayValue={`${Math.round(compThreshold)}`} size={32} />}
                 >
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     <Knob
                       value={compThreshold}
                       min={-60}
@@ -1072,7 +1091,7 @@ const engineRef = useRef<AudioEngine | null>(null);
                           : "bg-black/30 text-neutral-400 border-neutral-800 hover:border-neutral-700 hover:text-white hover:border-[#FF0040]/30"
                       }`}
                     >
-                      {mode === "dots" ? "â— DOTS" : mode === "rings" ? "â—‰ RINGS" : mode === "blur" ? "â—Ž BLUR" : "â— BLACK HOLE"}
+                      {mode === "dots" ? "● DOTS" : mode === "rings" ? "◉ RINGS" : mode === "blur" ? "◌ BLUR" : "◘ BLACK HOLE"}
                     </button>
                   ))}
                 </div>
@@ -1216,7 +1235,9 @@ const engineRef = useRef<AudioEngine | null>(null);
                     ["R", "Record output"],
                     ["E", "Export WAV"],
                     ["G", "Toggle glitch void"],
-                    ["L", "Toggle loop"],
+                    ["L", "Toggle loop on/off (keeps A\u2013B region)"],
+                    ["\u2190 / \u2192", "Move loop start (A)"],
+                    ["Shift + \u2190 / \u2192", "Move loop end (B)"],
                     ["/", "Show shortcuts"],
                     ["Click module", "Expand / collapse a signal-chain module"],
                     ["Alt + Scroll", "Fine-tune knob"],

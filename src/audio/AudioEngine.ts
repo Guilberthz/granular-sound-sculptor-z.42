@@ -180,10 +180,23 @@ export class AudioEngine {
     if (this.ctx?.state === "suspended") this.ctx.resume().catch(() => {});
   }
 
+  private snapCursorToRegion(): void {
+    const dur = this.buffer?.duration;
+    if (!dur || this.loopStart === null || this.loopEnd === null) return;
+    const a = this.loopStart * dur;
+    const b = this.loopEnd * dur;
+    if (b - a <= 0.005) return;
+    if (this.cursor < a || this.cursor > b) {
+      this.cursor = a;
+      this.onCursorChanged();
+    }
+  }
+
   play(): void {
     const ctx = this.ensure();
     if (!ctx) return;
     this.resumeIfNeeded();
+    this.snapCursorToRegion();
     this.isPlaying = true;
     this.nextGrainTime = ctx.currentTime + 0.05;
     this.lastTick = performance.now();
@@ -205,6 +218,7 @@ export class AudioEngine {
 
 replay(): void {
     this.cursor = 0;
+    this.snapCursorToRegion();
     this.onCursorChanged();
     this.play();
   }
@@ -240,7 +254,6 @@ replay(): void {
   }
 
   toggleLoop(): void {
-    if (this.looping) this.clearLoopRegion();
     this.looping = !this.looping;
     if (this.isPlaying) this.syncPositionedSource();
   }

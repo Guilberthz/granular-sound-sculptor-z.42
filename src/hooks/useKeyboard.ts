@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 
+const LOOP_NUDGE_STEP = 0.05;
+
 export interface KeyboardHandlers {
   onTogglePlay: () => void;
   selectPreset: (index: number) => void; // 1-based index into the sample list
@@ -12,6 +14,8 @@ export interface KeyboardHandlers {
   onToggleEq: () => void;
   onExport: () => void;
   onToggleShortcuts: () => void;
+  onNudgeLoopStart: (deltaSec: number) => void;
+  onNudgeLoopEnd: (deltaSec: number) => void;
 }
 
 export function useKeyboard(handlers: KeyboardHandlers) {
@@ -37,6 +41,8 @@ export function useKeyboard(handlers: KeyboardHandlers) {
       if (e.code === "KeyE" && e.shiftKey) h.onToggleEq();
       if (e.code === "KeyE" && !e.shiftKey) h.onExport();
       if (e.code === "Slash") { e.preventDefault(); h.onToggleShortcuts(); }
+      if (e.code === "ArrowLeft") { e.preventDefault(); (e.shiftKey ? h.onNudgeLoopEnd : h.onNudgeLoopStart)(-LOOP_NUDGE_STEP); }
+      if (e.code === "ArrowRight") { e.preventDefault(); (e.shiftKey ? h.onNudgeLoopEnd : h.onNudgeLoopStart)(LOOP_NUDGE_STEP); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);

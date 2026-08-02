@@ -318,7 +318,7 @@ function WaveformView({
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerLeave}
       onContextMenu={handleContextMenu}
-      title="Left click: loop start. Right-click drag: loop end. Drag to seek. Scroll to zoom."
+      title="Left click: loop start. Right-click drag: loop end. Drag to seek. Scroll to zoom. Arrow keys: move loop markers (Shift for B)."
       className="w-full border border-neutral-800 bg-black/20 relative overflow-auto scrollbar-thin touch-none"
       style={{ scrollbarWidth: "thin", scrollbarColor: "#333 #000", cursor: "pointer" }}
     >
