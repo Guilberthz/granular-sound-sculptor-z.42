@@ -218,16 +218,38 @@ function WaveformView({
 
   useEffect(() => { draw(); }, [draw]);
 
+  const followRef = useRef(true);
+  const autoScrollTargetRef = useRef<number | null>(null);
+
+  // Auto-follow the playhead ONLY while actually playing (the loop region must
+  // stay visually locked when the user is paused, zooming, or scrolling around).
   useEffect(() => {
     if (!wrapperRef.current || !buffer) return;
+    if (!isPlaying || !followRef.current) return;
     const autoScroll = playheadPos > 0 && playheadPos < 1;
     if (!autoScroll) return;
     const totalSamples = buffer.length;
     const visibleSamples = Math.floor(totalSamples / zoom);
     const scrollableWidth = wrapperRef.current.scrollWidth - wrapperRef.current.clientWidth;
     const targetScroll = (playheadPos - (visibleSamples / totalSamples) / 2) * scrollableWidth;
-    wrapperRef.current.scrollLeft = Math.max(0, Math.min(scrollableWidth, targetScroll));
-  }, [playheadPos, zoom, buffer]);
+    const next = Math.max(0, Math.min(scrollableWidth, targetScroll));
+    autoScrollTargetRef.current = next;
+    wrapperRef.current.scrollLeft = next;
+  }, [playheadPos, zoom, buffer, isPlaying]);
+
+  const handleScroll = () => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    if (autoScrollTargetRef.current !== null && Math.abs(el.scrollLeft - autoScrollTargetRef.current) < 1) {
+      autoScrollTargetRef.current = null;
+      return;
+    }
+    followRef.current = false;
+  };
+
+  useEffect(() => {
+    if (isPlaying) followRef.current = true;
+  }, [isPlaying]);
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
@@ -324,6 +346,7 @@ function WaveformView({
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerLeave}
       onContextMenu={handleContextMenu}
+      onScroll={handleScroll}
       title="Left click: loop start. Right-click drag: loop end. Drag to seek. Scroll to zoom. Arrow keys: move loop markers (Shift for B)."
       className="w-full border border-neutral-800 bg-black/20 relative overflow-auto scrollbar-thin touch-none"
       style={{ scrollbarWidth: "thin", scrollbarColor: "#333 #000", cursor: "pointer" }}

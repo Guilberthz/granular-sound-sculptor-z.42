@@ -6,6 +6,12 @@ export const PRESET_SAMPLES: PresetSample[] = [
   { id: "argon", name: "ARGON VOID", code: "Ar-18", freq: 110, type: "texture" },
   { id: "singularity", name: "SINGULARITY NOISE", code: "Q5-TEST", freq: 220, type: "noise" },
   { id: "delta", name: "DELTA PULSE", code: "D2-459", freq: 40, type: "synth" },
+  { id: "nebula_cloud", name: "NEBULA DRIFT", code: "NB-D7", freq: 130, type: "texture" },
+  { id: "aurora_veil", name: "AURORA VEIL", code: "AV-22", freq: 220, type: "synth" },
+  { id: "mistfall", name: "MISTFALL", code: "MF-55", freq: 55, type: "noise" },
+  { id: "starless", name: "STARLESS", code: "SL-349", freq: 349, type: "texture" },
+  { id: "honeydrift", name: "HONEYDRIFT", code: "HD-454", freq: 165, type: "synth" },
+  { id: "lowtide", name: "LOWTIDE", code: "LT-87", freq: 87, type: "texture" },
 ];
 
 export const DEFAULT_PRESET_PARAMS: Record<string, PresetParams> = {
@@ -43,5 +49,47 @@ export const DEFAULT_PRESET_PARAMS: Record<string, PresetParams> = {
     enableGranular: true, enableDistortion: false, enableReverb: true, enableDelay: false, isGlitchVoid: false, glowIntensity: 0.2, enableFilter: false, filterType: "lowpass", filterCutoff: 2000, filterResonance: 1,
     enableCompressor: false, compThreshold: -24, compRatio: 3, compAttack: 0.003, compRelease: 0.25,
     enableEq: true, eqLowGain: 3, eqMidGain: 0, eqHighGain: -4,
+  },
+  nebula_cloud: {
+    grainDensity: 8, grainSize: 0.3, pitchShift: 0.7, spray: 0.04,
+    harmonicMode: "major", distortion: 0, reverbMix: 0.85, delayMix: 0.5,
+    enableGranular: true, enableDistortion: false, enableReverb: true, enableDelay: true, isGlitchVoid: false, glowIntensity: 0.35, enableFilter: false, filterType: "lowpass", filterCutoff: 2000, filterResonance: 1,
+    enableCompressor: true, compThreshold: -20, compRatio: 3.5, compAttack: 0.01, compRelease: 0.22,
+    enableEq: true, eqLowGain: 0, eqMidGain: 0, eqHighGain: 2,
+  },
+  aurora_veil: {
+    grainDensity: 12, grainSize: 0.22, pitchShift: 1.9, spray: 0.05,
+    harmonicMode: "octaves", distortion: 5, reverbMix: 0.8, delayMix: 0.45,
+    enableGranular: true, enableDistortion: false, enableReverb: true, enableDelay: true, isGlitchVoid: false, glowIntensity: 0.4, enableFilter: false, filterType: "lowpass", filterCutoff: 2400, filterResonance: 1,
+    enableCompressor: true, compThreshold: -22, compRatio: 3, compAttack: 0.008, compRelease: 0.2,
+    enableEq: true, eqLowGain: 2, eqMidGain: 0, eqHighGain: 1,
+  },
+  mistfall: {
+    grainDensity: 6, grainSize: 0.32, pitchShift: 0.6, spray: 0.03,
+    harmonicMode: "none", distortion: 0, reverbMix: 0.9, delayMix: 0.4,
+    enableGranular: true, enableDistortion: false, enableReverb: true, enableDelay: true, isGlitchVoid: false, glowIntensity: 0.3, enableFilter: false, filterType: "lowpass", filterCutoff: 1200, filterResonance: 0.8,
+    enableCompressor: true, compThreshold: -18, compRatio: 4, compAttack: 0.012, compRelease: 0.25,
+    enableEq: false, eqLowGain: 0, eqMidGain: 0, eqHighGain: 0,
+  },
+  starless: {
+    grainDensity: 14, grainSize: 0.2, pitchShift: 1.3, spray: 0.06,
+    harmonicMode: "whole_tone", distortion: 0, reverbMix: 0.75, delayMix: 0.55,
+    enableGranular: true, enableDistortion: false, enableReverb: true, enableDelay: true, isGlitchVoid: false, glowIntensity: 0.45, enableFilter: false, filterType: "lowpass", filterCutoff: 2000, filterResonance: 1,
+    enableCompressor: true, compThreshold: -24, compRatio: 3, compAttack: 0.006, compRelease: 0.2,
+    enableEq: true, eqLowGain: -2, eqMidGain: 0, eqHighGain: 3,
+  },
+  honeydrift: {
+    grainDensity: 10, grainSize: 0.26, pitchShift: 0.8, spray: 0.04,
+    harmonicMode: "minor_pentatonic", distortion: 2, reverbMix: 0.82, delayMix: 0.5,
+    enableGranular: true, enableDistortion: false, enableReverb: true, enableDelay: true, isGlitchVoid: false, glowIntensity: 0.38, enableFilter: false, filterType: "lowpass", filterCutoff: 2000, filterResonance: 1,
+    enableCompressor: true, compThreshold: -21, compRatio: 3.2, compAttack: 0.01, compRelease: 0.22,
+    enableEq: true, eqLowGain: 1, eqMidGain: 1, eqHighGain: -1,
+  },
+  lowtide: {
+    grainDensity: 6, grainSize: 0.34, pitchShift: 0.5, spray: 0.02,
+    harmonicMode: "fifths", distortion: 0, reverbMix: 0.92, delayMix: 0.35,
+    enableGranular: true, enableDistortion: false, enableReverb: true, enableDelay: true, isGlitchVoid: false, glowIntensity: 0.3, enableFilter: false, filterType: "lowpass", filterCutoff: 900, filterResonance: 0.6,
+    enableCompressor: true, compThreshold: -16, compRatio: 4.5, compAttack: 0.015, compRelease: 0.3,
+    enableEq: true, eqLowGain: 3, eqMidGain: -1, eqHighGain: -2,
   },
 };
