@@ -1,0 +1,250 @@
+@import "tailwindcss";
+
+:root {
+  --accent: #FF0040;
+  --accent-glow: rgba(255, 0, 64, 0.6);
+  --accent-soft: rgba(255, 0, 64, 0.12);
+  --accent-dim: rgba(255, 0, 64, 0.05);
+}
+
+button:focus-visible,
+input:focus-visible,
+[role="slider"]:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.futuristic-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 0 !important;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+  letter-spacing: 0.08em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025), inset 0 0 14px rgba(255, 255, 255, 0.015);
+}
+
+.futuristic-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background: linear-gradient(110deg, transparent 28%, rgba(255, 255, 255, 0.18) 48%, transparent 68%);
+  transform: translateX(-120%);
+  transition: transform 0.42s ease, opacity 0.2s ease;
+}
+
+.futuristic-button:hover::before {
+  opacity: 1;
+  transform: translateX(120%);
+}
+
+.futuristic-button:hover {
+  transform: translateY(-1px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 12px rgba(255, 0, 64, 0.14);
+}
+
+.futuristic-button:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.compact-button {
+  min-height: 26px;
+  line-height: 1;
+}
+
+.action-button {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  line-height: 1;
+}
+
+@keyframes control-ring-breathe {
+  0%, 100% { opacity: 0.28; transform: translate(-50%, -50%) scale(0.9); }
+  50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.14); }
+}
+
+.transport-knob {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  opacity: 0.88;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.transport-knob::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: -1;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  opacity: 0.2;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.09) 42%, transparent 72%);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.transport-knob-active {
+  opacity: 1;
+}
+
+.transport-knob-active::before {
+  animation: control-ring-breathe 1.7s ease-in-out infinite;
+}
+
+.transport-knob:hover {
+  opacity: 1;
+  transform: scale(1.18);
+}
+
+.transport-knob:hover::before {
+  opacity: 0.95;
+  transform: translate(-50%, -50%) scale(1.28);
+}
+
+.transport-knob:hover svg {
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.95));
+}
+
+@keyframes knob-halo-breathe {
+  0%, 100% { opacity: 0.15; transform: translate(-50%, -50%) scale(0.88); }
+  50% { opacity: 0.38; transform: translate(-50%, -50%) scale(1.04); }
+}
+
+.knob-control {
+  isolation: isolate;
+}
+
+.knob-control::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: -1;
+  width: 78%;
+  height: 78%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.07) 42%, transparent 72%);
+  animation: knob-halo-breathe 2.1s ease-in-out infinite;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.knob-control svg {
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.4));
+  transition: filter 0.18s ease;
+}
+
+.knob-control:hover::before {
+  opacity: 0.85;
+  transform: translate(-50%, -50%) scale(1.18);
+  animation-play-state: paused;
+}
+
+.knob-control:hover svg {
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.95));
+}
+
+.rounded,
+.rounded-sm,
+.rounded-md,
+.rounded-lg,
+.rounded-full {
+  border-radius: 0 !important;
+}
+
+@keyframes accent-pulse {
+  0%, 100% { box-shadow: 0 0 4px var(--accent-glow); }
+  50% { box-shadow: 0 0 16px var(--accent-glow), 0 0 32px rgba(255, 0, 64, 0.2); }
+}
+
+@keyframes accent-glow {
+  0%, 100% { text-shadow: 0 0 4px var(--accent-glow); }
+  50% { text-shadow: 0 0 12px var(--accent-glow), 0 0 24px rgba(255, 0, 64, 0.3); }
+}
+
+@keyframes cable-draw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes diamond-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.08); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes record-ring {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent-glow); }
+  70% { box-shadow: 0 0 0 8px rgba(255, 0, 64, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 64, 0); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.animate-accent-pulse {
+  animation: accent-pulse 1.5s ease-in-out infinite;
+}
+
+.animate-accent-glow {
+  animation: accent-glow 1.5s ease-in-out infinite;
+}
+
+.animate-diamond-spin {
+  animation: diamond-spin 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-record-ring {
+  animation: record-ring 1s ease-out infinite;
+}
+
+.cable-animate-flow {
+  stroke-dasharray: 6 4;
+  animation: cable-draw 0.3s linear infinite;
+}
+
+.accent-border {
+  border-color: var(--accent) !important;
+}
+
+.accent-text {
+  color: var(--accent) !important;
+}
+
+.accent-bg {
+  background-color: var(--accent-soft) !important;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #000;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 2px;
+}
+
+.app-region-drag {
+  -webkit-app-region: drag;
+}
+
+.app-region-no-drag,
+.app-region-drag button,
+.app-region-drag input,
+.app-region-drag [role="slider"] {
+  -webkit-app-region: no-drag;
+}
