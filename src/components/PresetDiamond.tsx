@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PresetSample } from "./types";
+import { PresetSample } from "../types";
 
 function PresetDiamond({
   sample,

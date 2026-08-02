@@ -1,6 +1,7 @@
 ﻿import { EffectsChain } from "./EffectsChain";
+import type { SampleType } from "../types";
 
-export type SampleWaveType = "synth" | "texture" | "noise";
+export type SampleWaveType = SampleType;
 
 export interface EngineCallbacks {
   onPlayhead?: (pos: number) => void;

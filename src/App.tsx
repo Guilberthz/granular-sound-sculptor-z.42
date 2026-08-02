@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Play, Pause, Upload, Activity, Disc, Zap, Sliders, Waves, Terminal, Download, RotateCcw, Repeat, CircleDot, Filter, ChevronDown, Power } from "lucide-react";
-import Knob from "./Knob";
-import WaveformView from "./WaveformView";
-import PresetDiamond from "./PresetDiamond";
+import Knob from "./components/Knob";
+import WaveformView from "./components/WaveformView";
+import PresetDiamond from "./components/PresetDiamond";
 import DeltaActivityView from "./components/DeltaActivityView";
 import Module from "./components/Module";
 import PanelSection from "./components/PanelSection";

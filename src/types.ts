@@ -1,11 +1,13 @@
 export type HarmonicMode = "none" | "octaves" | "fifths" | "minor_pentatonic" | "major" | "whole_tone";
 
+export type SampleType = "synth" | "texture" | "noise";
+
 export interface PresetSample {
   id: string;
   name: string;
   code: string;
   freq: number;
-  type: "synth" | "texture" | "noise";
+  type: SampleType;
 }
 
 export interface PresetParams {
