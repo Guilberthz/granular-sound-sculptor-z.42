@@ -1,6 +1,7 @@
 ﻿import { EffectsChain } from "./EffectsChain";
+import type { SampleType } from "../types";
 
-export type SampleWaveType = "synth" | "texture" | "noise";
+export type SampleWaveType = SampleType;
 
 export interface EngineCallbacks {
   onPlayhead?: (pos: number) => void;
@@ -40,7 +41,23 @@ export class AudioEngine {
   private nextGrainTime = 0;
   private lastTick = 0;
   private scheduledSources = new Set<AudioBufferSourceNode>();
-  private grainSchedulerId: number | null = null;
+  private grainSchedulerToken: number | null = null;
+
+  /**
+   * Lookahead scheduling constants. The scheduler wakes every
+   * {@link TIMER_INTERVAL}ms and emits every grain whose start time falls
+   * within {@link LOOKAHEAD_SECONDS} of the audio clock (`ctx.currentTime`).
+   * Because grain start times are derived from this.context.currentTime (not
+   * the wall clock), grains land on the device clock regardless of how late the
+   * scheduler timer actually fires. A shorter TIMER_INTERVAL reduces the gap
+   * between the lookahead horizon moving and new grains being scheduled,
+   * which tightens grain-boundary timing and cuts audible jitter.
+   */
+  private static readonly TIMER_INTERVAL_MS = 25;
+  private static readonly LOOKAHEAD_SECONDS = 0.25;
+  /** Hard cap on grains emitted per scheduler tick, to avoid a burst of
+   *  dead grains after a tab-throttling stall. */
+  private static readonly MAX_GRAINS_PER_TICK = 96;
 
   // Positioned (non-granular) playback sources.
   private bypassSource: AudioBufferSourceNode | null = null;
@@ -163,10 +180,23 @@ export class AudioEngine {
     if (this.ctx?.state === "suspended") this.ctx.resume().catch(() => {});
   }
 
+  private snapCursorToRegion(): void {
+    const dur = this.buffer?.duration;
+    if (!dur || this.loopStart === null || this.loopEnd === null) return;
+    const a = this.loopStart * dur;
+    const b = this.loopEnd * dur;
+    if (b - a <= 0.005) return;
+    if (this.cursor < a || this.cursor > b) {
+      this.cursor = a;
+      this.onCursorChanged();
+    }
+  }
+
   play(): void {
     const ctx = this.ensure();
     if (!ctx) return;
     this.resumeIfNeeded();
+    this.snapCursorToRegion();
     this.isPlaying = true;
     this.nextGrainTime = ctx.currentTime + 0.05;
     this.lastTick = performance.now();
@@ -188,6 +218,7 @@ export class AudioEngine {
 
 replay(): void {
     this.cursor = 0;
+    this.snapCursorToRegion();
     this.onCursorChanged();
     this.play();
   }
@@ -223,7 +254,6 @@ replay(): void {
   }
 
   toggleLoop(): void {
-    if (this.looping) this.clearLoopRegion();
     this.looping = !this.looping;
     if (this.isPlaying) this.syncPositionedSource();
   }
@@ -482,27 +512,44 @@ replay(): void {
 
     if (!this.isPlaying || this.bypass || !this.granularEnabled) return;
 
-    const horizon = ctx.currentTime + 0.25;
+    const nowClock = ctx.currentTime;
+
+    // If the scheduler fell far behind the audio clock (tab throttling, etc.)
+    // jump the emission time forward rather than spooling a backlog of
+    // back-dated grains that would all fire instantly as a dense burst.
+    if (this.nextGrainTime < nowClock - AudioEngine.LOOKAHEAD_SECONDS) {
+      this.nextGrainTime = nowClock + 50 / 1000;
+    }
+
+    const horizon = nowClock + AudioEngine.LOOKAHEAD_SECONDS;
     const intervalSec = 1 / Math.max(1, this.grainDensity);
-    while (this.nextGrainTime < horizon) {
+    let spawned = 0;
+    while (this.nextGrainTime < horizon && spawned < AudioEngine.MAX_GRAINS_PER_TICK) {
       const grainTime = this.nextGrainTime;
-      const offset = this.cursor + (grainTime - ctx.currentTime);
+      const offset = this.cursor + (grainTime - nowClock);
       this.spawnGrainAt(grainTime, offset);
       this.nextGrainTime += intervalSec;
+      spawned++;
     }
   }
 
   private startScheduler(): void {
-    if (this.grainSchedulerId !== null) return;
-    this.grainSchedulerId = window.setInterval(() => {
+    if (this.grainSchedulerToken !== null) return;
+    this.scheduleNextTick();
+  }
+
+  private scheduleNextTick(): void {
+    this.grainSchedulerToken = window.setTimeout(() => {
+      this.grainSchedulerToken = null;
       this.advanceAndTick();
-    }, 50);
+      if (this.isPlaying) this.scheduleNextTick();
+    }, AudioEngine.TIMER_INTERVAL_MS);
   }
 
   private stopGrainScheduler(): void {
-    if (this.grainSchedulerId !== null) {
-      clearInterval(this.grainSchedulerId);
-      this.grainSchedulerId = null;
+    if (this.grainSchedulerToken !== null) {
+      clearTimeout(this.grainSchedulerToken);
+      this.grainSchedulerToken = null;
     }
   }
 

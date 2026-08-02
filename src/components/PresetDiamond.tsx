@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PresetSample } from "./types";
+import { PresetSample } from "../types";
 
 function PresetDiamond({
   sample,
@@ -54,7 +54,10 @@ function PresetDiamond({
   }
 
   return (
-    <div className="flex items-center gap-2 w-full group">
+    <div
+      title={isCustom ? `${sample.name} — double-click to rename` : sample.name}
+      className="relative inline-flex group cursor-pointer"
+    >
       <button
         onClick={handleClick}
         onDoubleClick={() => {
@@ -63,11 +66,10 @@ function PresetDiamond({
             setRenaming(true);
           }
         }}
-        title={isCustom ? `${sample.name} — double-click to rename` : sample.name}
-        className="flex items-center gap-3 w-full text-left group flex-1 min-w-0"
+        className="block flex-shrink-0"
       >
         <div
-          className={`w-[30px] h-[30px] flex-shrink-0 flex items-center justify-center transition-all duration-300 ${
+          className={`w-[26px] h-[26px] flex-shrink-0 flex items-center justify-center transition-all duration-300 ${
             spinning ? "animate-diamond-spin" : ""
           } group-hover:scale-110 group-hover:shadow-[0_0_12px_rgba(255,0,64,0.4)] active:scale-95`}
           style={{
@@ -79,24 +81,12 @@ function PresetDiamond({
           }}
         >
           <span
-            className={`text-[10px] font-bold font-mono transition-colors duration-300 ${
+            className={`text-[9px] font-bold font-mono transition-colors duration-300 ${
               active ? "text-white" : "text-neutral-500 group-hover:text-white"
             }`}
           >
             {sample.name.charAt(0)}
           </span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div
-            className={`text-xs truncate transition-colors duration-300 ${
-              active ? "text-[#FF0040] font-bold" : "text-neutral-400 group-hover:text-white"
-            }`}
-          >
-            {sample.name}
-          </div>
-          <div className="text-[9px] text-neutral-600 font-mono truncate transition-colors duration-300 group-hover:text-neutral-400">
-            {sample.code}
-          </div>
         </div>
       </button>
       {isCustom && onDelete && (
@@ -106,7 +96,7 @@ function PresetDiamond({
             onDelete();
           }}
           title="Delete preset"
-          className="opacity-0 group-hover:opacity-100 text-neutral-600 hover:text-[#FF0040] text-sm px-1 py-1 transition-opacity active:scale-95"
+          className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center rounded-full text-[9px] leading-none text-[#FF0040] bg-black border border-neutral-700 hover:bg-[#FF0040] hover:text-white transition-opacity"
         >
           ✕
         </button>

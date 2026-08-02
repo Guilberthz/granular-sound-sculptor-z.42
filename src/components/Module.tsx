@@ -18,12 +18,12 @@ export default function Module({
   onToggle: () => void;
   miniKnob?: React.ReactNode;
   defaultOpen?: boolean;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen ?? enabled);
   return (
     <div className="border-t border-neutral-800 pt-2">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1 min-h-7">
         <button
           onClick={onToggle}
           title={`${enabled ? "Disable" : "Enable"} ${label}`}

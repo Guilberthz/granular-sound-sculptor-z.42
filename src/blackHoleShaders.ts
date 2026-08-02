@@ -61,7 +61,7 @@ export const BLACK_HOLE_VERTEX = `
     float angleFade = 0.7 + 0.3 * abs(sin(aAngle * 2.0 + uTime * 0.002));
     vAlpha = innerFade * outerFade * angleFade * (0.5 + uAccretionIntensity * 0.5);
     
-    gl_PointSize = (aSize * (1.0 + uAudioFreq * 2.0)) * (100.0 / -mvPosition.z);
+    gl_PointSize = (aSize * (1.0 + uAudioFreq * 2.0)) * (85.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -110,30 +110,34 @@ export const BLACK_HOLE_FRAGMENT = `
       doppler * 0.5 + 0.5
     );
     
-    // Audio-reactive temperature boost
+// Audio-reactive temperature boost
     float audioHeat = uAudioFreq * uAccretionIntensity * 0.5;
     vec3 hotColor = vec3(1.0, 1.0, 0.8);
     baseColor = mix(baseColor, hotColor, audioHeat);
-    baseColor = mix(baseColor, dopplerColor, 0.3);
-    
+    baseColor = mix(baseColor, dopplerColor, 0.45);
+
     // Magnetic field line highlights
     float fieldLines = sin(vAngle * 12.0 + uTime * 0.005) * 0.5 + 0.5;
     fieldLines = pow(fieldLines, 8.0) * 0.3;
     baseColor += vec3(fieldLines) * vec3(1.0, 0.5, 0.1);
-    
+
     // Corona flares
     float flare = sin(vRadius * 50.0 + uTime * 0.02) * 0.5 + 0.5;
     flare = pow(flare, 20.0) * 0.2;
     baseColor += vec3(flare) * vec3(1.0, 0.8, 0.3);
-    
+
+    // Soft additive glow halo hugging the disk
+    float halo = smoothstep(0.5, 0.0, dist) * (0.25 + uAccretionIntensity * 0.2);
+
     float glowBoost = 1.0 + uAccretionIntensity * 2.0;
-    gl_FragColor = vec4(baseColor * glowBoost, intensity * vAlpha * 1.5);
+    gl_FragColor = vec4(baseColor * glowBoost + vec3(1.0, 0.7, 0.3) * halo, intensity * vAlpha * 1.5);
   }
 `;
 
 // Photon Ring Shader - THIN bright ring at 1.5x Schwarzschild radius
 export const PHOTON_RING_VERTEX = `
   uniform float uTime;
+  uniform float uAudioFreq;
   attribute float aAngle;
   attribute float aRadius;
   varying float vAngle;
@@ -153,7 +157,7 @@ export const PHOTON_RING_VERTEX = `
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     // Much tighter vertical constraint for ultra-thin ring
     vAlpha = smoothstep(0.0, 0.003, abs(mvPosition.y)) * (1.0 - smoothstep(0.0, 0.003, abs(mvPosition.y)));
-    gl_PointSize = (1.0) * (200.0 / -mvPosition.z);
+    gl_PointSize = (3.5 * (1.0 + uAudioFreq * 3.0)) * (3.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -204,29 +208,60 @@ export const EVENT_HORIZON_FRAGMENT = `
   uniform float uAudioFreq;
   uniform sampler2D uStarField;
   
-  // Gravitational lensing approximation
-  vec2 lens(vec2 uv, float mass, vec2 center) {
-    vec2 dir = uv - center;
-    float dist = length(dir);
-    float einsteinRadius = mass * 0.15;
-    float deflection = einsteinRadius / max(dist, 0.001);
-    return uv - dir * deflection;
+  void main() {
+    // Mirrored star-field reflection across the sphere
+    float azimuth = atan(vNormal.y, vNormal.x);
+    float polar = acos(clamp(vNormal.z, -1.0, 1.0));
+    vec2 mirrorUv = vec2(azimuth / 6.2831853 + 0.5, 1.0 - polar / 3.1415926);
+
+    vec3 base = vec3(0.03, 0.03, 0.05); // dark metallic body
+    vec3 reflection = texture2D(uStarField, mirrorUv).rgb;
+
+    // Fresnel so starlight glints toward the silhouette (mirror edge)
+    float fres = pow(1.0 - abs(vNormal.z), 2.5);
+
+    vec3 color = mix(base, reflection, 0.2 + fres * 0.7);
+    color += reflection * fres * (0.5 + uAudioFreq * 1.0);
+
+    gl_FragColor = vec4(color, 1.0);
+  }
+`;
+
+// Small iridescent core that pulses like a light source inside the black hole
+export const IRIDESCENT_CORE_FRAGMENT = `
+  varying vec3 vNormal;
+  varying vec3 vWorldPos;
+  uniform float uTime;
+  uniform float uAudioFreq;
+  
+  float clouds(vec3 p) {
+    float n = 0.0;
+    float amp = 0.6;
+    vec3 q = p;
+    for (int i = 0; i < 4; i++) {
+      n += amp * sin(q.x * 6.0 + 1.0) * sin(q.y * 6.0 + 2.0) * sin(q.z * 6.0 + 3.0);
+      amp *= 0.5;
+      q *= 2.1;
+    }
+    return n;
   }
   
   void main() {
-    // Perfect black - event horizon absorbs all light
-    vec3 horizonColor = vec3(0.0);
-    
-    // Subtle Hawking radiation flicker at quantum level
-    float hawking = sin(vWorldPos.x * 100.0 + uTime * 10.0) * 
-                   sin(vWorldPos.y * 100.0 + uTime * 7.0) * 
-                   sin(vWorldPos.z * 100.0 + uTime * 13.0) * 1e-6;
-    
-    // Edge glow from accretion disk reflection
-    float edgeGlow = pow(1.0 - abs(vNormal.z), 8.0) * 0.02 * (1.0 + uAudioFreq * 0.5);
-    vec3 glowColor = vec3(1.0, 0.15, 0.0) * edgeGlow;
-    
-    gl_FragColor = vec4(horizonColor + glowColor + hawking, 1.0);
+    float t = uTime * 0.6;
+
+    float hue = t * 0.35 + vWorldPos.x * 0.5 + vWorldPos.y * 0.4 + vWorldPos.z * 0.35;
+    vec3 irid = 0.5 + 0.5 * cos(vec3(hue, hue + 2.094, hue + 4.188) + uAudioFreq);
+
+    float pulse = 0.55 + 0.45 * sin(t * 2.2);
+    float flicker = 0.85 + 0.15 * sin(t * 5.1 + vWorldPos.y * 40.0);
+
+    float cloud = clouds(vWorldPos + vec3(0.0, t, t * 0.7));
+
+    vec3 color = irid * (pulse + cloud * 0.5) * flicker * (1.0 + uAudioFreq * 1.5);
+    float core = smoothstep(0.6, 0.0, abs(vNormal.z));
+    color += vec3(1.0, 0.98, 0.92) * core * pulse;
+
+    gl_FragColor = vec4(color, 1.0);
   }
 `;
 
@@ -307,9 +342,10 @@ export const JET_VERTEX = `
       sin(currentAngle) * radius
     );
     
-    // Internal shock diamonds
+    // Internal shock diamonds with smooth falloff at the tips
     float shock = sin(aHeight * 20.0 + uTime * 0.01) * 0.5 + 0.5;
-    vAlpha = (1.0 - aHeight) * shock * (0.5 + uAudioFreq * 0.5);
+    float taper = pow(1.0 - aHeight, 2.2);
+    vAlpha = taper * shock * (0.5 + uAudioFreq * 0.5);
     
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_PointSize = (3.0 + aHeight * 5.0) * (100.0 / -mvPosition.z);

@@ -11,6 +11,7 @@ function WaveformView({
   onSetLoopStart,
   onSetLoopEnd,
   onClearLoop,
+  onInteractingChange,
 }: {
   buffer: AudioBuffer | null;
   playheadPos: number;
@@ -22,6 +23,7 @@ function WaveformView({
   onSetLoopStart?: (pos: number) => void;
   onSetLoopEnd?: (pos: number) => void;
   onClearLoop?: () => void;
+  onInteractingChange?: (busy: boolean) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -36,9 +38,11 @@ function WaveformView({
   const onSetLoopStartRef = useRef(onSetLoopStart);
   const onSetLoopEndRef = useRef(onSetLoopEnd);
   const onClearLoopRef = useRef(onClearLoop);
+  const onInteractingChangeRef = useRef(onInteractingChange);
   onSetLoopStartRef.current = onSetLoopStart;
   onSetLoopEndRef.current = onSetLoopEnd;
   onClearLoopRef.current = onClearLoop;
+  onInteractingChangeRef.current = onInteractingChange;
   const [zoom, setZoom] = useState(1);
   const [hoverX, setHoverX] = useState<number | null>(null);
 
@@ -234,6 +238,7 @@ function WaveformView({
   const handlePointerDown = (e: React.PointerEvent) => {
     const el = e.currentTarget as HTMLDivElement;
     el.setPointerCapture(e.pointerId);
+    onInteractingChangeRef.current?.(true);
     downXRef.current = e.clientX;
     movedRef.current = false;
     pendingHoverRef.current = e.clientX - el.getBoundingClientRect().left;
@@ -277,6 +282,7 @@ function WaveformView({
     movedRef.current = false;
     downXRef.current = null;
     previewLoopEndRef.current = null;
+    onInteractingChangeRef.current?.(false);
   };
 
   const handlePointerLeave = () => {
@@ -318,7 +324,7 @@ function WaveformView({
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerLeave}
       onContextMenu={handleContextMenu}
-      title="Left click: loop start. Right-click drag: loop end. Drag to seek. Scroll to zoom."
+      title="Left click: loop start. Right-click drag: loop end. Drag to seek. Scroll to zoom. Arrow keys: move loop markers (Shift for B)."
       className="w-full border border-neutral-800 bg-black/20 relative overflow-auto scrollbar-thin touch-none"
       style={{ scrollbarWidth: "thin", scrollbarColor: "#333 #000", cursor: "pointer" }}
     >
